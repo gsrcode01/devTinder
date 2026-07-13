@@ -3,8 +3,8 @@ const connectDB = require("./config/database");
 const User = require("./models/user");
 const app = express();
 const { validateSignUpData } = require("./utils/validation");
-const bcrypt = require("bycrpt");
-const { error } = require("console");
+const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
 const { userAuth } = require("./middlewares/auth");
 
 //middleware used to make server comfortable with the json data n middle  ware is provided by the express
@@ -15,32 +15,27 @@ app.use(cookieParser());
 //getting json data from the end users.
 
 app.post('/Signup', async (req, res) => {
-    //Validation of the data provided
-    validateSignUpData(req);
-    const { password } = req.body;
-
-    //encryption of the password
-    const hashpass = bcrypt.hash(password, 10);
-
-    //creating a new instance of the user model
-    const user = new User({
-        firstName,
-        lastName,
-        emailId,
-        password: hashpass,
-    });
-
     try {
+        //Validation of the data provided
+        validateSignUpData(req);
+        const { firstName, lastName, emailId, password } = req.body;
+
+        //encryption of the password
+        const hashpass = await bcrypt.hash(password, 10);
+
+        //creating a new instance of the user model
+        const user = new User({
+            firstName,
+            lastName,
+            emailId,
+            password: hashpass,
+        });
+
         await user.save();
-        res.send("User saved Succesfully")
+        res.send("User saved Succesfully");
     } catch (err) {
-        res.send(400).send("Error saving the user:" + err.message);
+        res.status(400).send("Error saving the user: " + err.message);
     }
-
-
-
-    await user.save();
-    res.send("useer added successfully!");
 });
 
 app.post('/login', async (req, res) => {
@@ -48,24 +43,21 @@ app.post('/login', async (req, res) => {
         const { emailId, password } = req.body;
         const user = await User.findOne({ emailId: emailId });
 
-        if (!emailId) {
-            throw new Error("invalid credenttials ")
+        if (!user) {
+            throw new Error("invalid credentials");
         }
 
         const isPassValid = await user.validatePassword(password);
         if (isPassValid) {
-
             const token = await user.getJWT();
 
             res.cookie("token", token, { httpOnly: true });
-
             res.send("Login Successful");
         } else {
-            throw new error("invalid credentials")
+            throw new Error("invalid credentials");
         }
-
     } catch (err) {
-        res.status(400).send("Error while logging in");
+        res.status(400).send("Error while logging in: " + err.message);
     }
 });
 
