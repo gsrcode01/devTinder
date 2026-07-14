@@ -2,15 +2,15 @@ const express = require("express");
 const authRouter = express.Router();
 const { validateSignUpData } = require("../utils/validation");
 const User = require("../models/user");
-const bcrypt = require("bycrpt");
+const bcrypt = require("bcrypt");
 
 authRouter.post('/signup', async (req, res) => {
     //Validation of the data provided
     validateSignUpData(req);
-    const { password } = req.body;
+    const { firstName, lastName, emailId, password } = req.body;
 
     //encryption of the password
-    const hashpass = bcrypt.hash(password, 10);
+    const hashpass = await bcrypt.hash(password, 10);
 
     //creating a new instance of the user model
     const user = new User({
@@ -22,15 +22,10 @@ authRouter.post('/signup', async (req, res) => {
 
     try {
         await user.save();
-        res.send("User saved Succesfully")
+        res.send("User saved Succesfully");
     } catch (err) {
-        res.send(400).send("Error saving the user:" + err.message);
+        res.status(400).send("Error saving the user: " + err.message);
     }
-
-
-
-    await user.save();
-    res.send("useer added successfully!");
 });
 
 authRouter.post('/login', async (req, res) => {
@@ -51,11 +46,11 @@ authRouter.post('/login', async (req, res) => {
 
             res.send("Login Successful");
         } else {
-            throw new error("invalid credentials")
+            throw new Error("invalid credentials")
         }
 
     } catch (err) {
-        res.status(400).send("Error while logging in");
+        res.status(400).send("Error while logging in: " + err.message);
     }
 });
 
