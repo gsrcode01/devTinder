@@ -22,25 +22,25 @@ import {
   Zap,
 } from "lucide-react";
 
-// Initial chat conversation histories per developer without raw emojis
-const defaultConversations = {
+// Default conversations mapped by contact ID
+const initialConversations = {
   default: [
     {
       id: 1,
       sender: "them",
-      text: "Hey there! Saw your profile on DevTinder. Are you working with React & Next.js?",
+      text: "Hey! Saw your profile on DevTinder. Are you building full-stack apps with React & Node?",
       time: "10:32 AM",
     },
     {
       id: 2,
       sender: "me",
-      text: "Hey! Yes, I build full-stack apps with Next.js, TypeScript, and Node backend.",
+      text: "Hey there! Yes, primarily with Next.js, TypeScript, and MongoDB backends.",
       time: "10:34 AM",
     },
     {
       id: 3,
       sender: "them",
-      text: "Awesome! I'm building an AI code review tool. Would love to collaborate on the frontend architecture if you're open!",
+      text: "Awesome! We're building an open-source developer productivity tool. Would love to collaborate if you're interested!",
       time: "10:36 AM",
     },
   ],
@@ -56,21 +56,21 @@ const Messages = () => {
   const [activeContact, setActiveContact] = useState(null);
   const [chatSearch, setChatSearch] = useState("");
   const [inputText, setInputText] = useState("");
-  const [messages, setMessages] = useState(defaultConversations.default);
+  const [conversations, setConversations] = useState(initialConversations);
   const messagesEndRef = useRef(null);
 
   const fetchConnections = async () => {
     try {
       const res = await api.get("/user/connections");
-      if (res.data?.data) {
-        dispatch(addConnections(res.data.data));
-        if (res.data.data.length > 0 && !activeContact) {
-          if (targetUserId) {
-            const found = res.data.data.find((c) => c._id === targetUserId);
-            setActiveContact(found || res.data.data[0]);
-          } else {
-            setActiveContact(res.data.data[0]);
-          }
+      const list = res.data?.data || [];
+      dispatch(addConnections(list));
+
+      if (list.length > 0 && !activeContact) {
+        if (targetUserId) {
+          const found = list.find((c) => c._id === targetUserId);
+          setActiveContact(found || list[0]);
+        } else {
+          setActiveContact(list[0]);
         }
       }
     } catch (err) {
@@ -79,27 +79,28 @@ const Messages = () => {
   };
 
   useEffect(() => {
-    if (connections && connections.length > 0) {
-      if (!activeContact) {
-        if (targetUserId) {
-          const found = connections.find((c) => c._id === targetUserId);
-          setActiveContact(found || connections[0]);
-        } else {
-          setActiveContact(connections[0]);
-        }
-      }
-    } else {
+    if (user && connections === null) {
       fetchConnections();
+    } else if (connections && connections.length > 0 && !activeContact) {
+      if (targetUserId) {
+        const found = connections.find((c) => c._id === targetUserId);
+        setActiveContact(found || connections[0]);
+      } else {
+        setActiveContact(connections[0]);
+      }
     }
-  }, [connections, targetUserId]);
+  }, [user, connections, targetUserId]);
+
+  const activeContactId = activeContact?._id || "default";
+  const currentMessages = conversations[activeContactId] || initialConversations.default;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [currentMessages]);
 
   const handleSendMessage = (e) => {
     e?.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !activeContact) return;
 
     const newMsg = {
       id: Date.now(),
@@ -108,36 +109,42 @@ const Messages = () => {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [...prev, newMsg]);
+    setConversations((prev) => ({
+      ...prev,
+      [activeContactId]: [...(prev[activeContactId] || initialConversations.default), newMsg],
+    }));
     setInputText("");
 
-    // Simulate smart developer auto-reply after 1.2s without emojis
+    // Realistic developer automated reply simulation after 1s
     setTimeout(() => {
       const replies = [
-        "Sounds like a solid plan. Let me clone the repository and test it out.",
-        "Love that approach. Let's sync up for a quick walkthrough this evening.",
-        "Checked the architecture, looks super clean. Let's build it together.",
-        "Awesome! I'll push the schema updates to GitHub right away.",
+        "Sounds like a great architecture. Let me review the repo branch!",
+        "Love that approach! Let's connect on GitHub and start the pull request.",
+        "Checked the schema design, looks super clean. Let's build it together!",
+        "Awesome! I'll push the API updates right away.",
       ];
       const randomReply = replies[Math.floor(Math.random() * replies.length)];
-      setMessages((prev) => [
+      setConversations((prev) => ({
         ...prev,
-        {
-          id: Date.now() + 1,
-          sender: "them",
-          text: randomReply,
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
+        [activeContactId]: [
+          ...(prev[activeContactId] || []),
+          {
+            id: Date.now() + 1,
+            sender: "them",
+            text: randomReply,
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ],
+      }));
     }, 1200);
   };
 
   const handleQuickSnippet = () => {
-    setInputText("const collaborate = async () => { await buildDreamApp(); };");
+    setInputText("const collaborate = async () => { await buildDreamProject(); };");
   };
 
-  const filteredConnections = connections?.filter((c) =>
-    `${c.firstName} ${c.lastName}`.toLowerCase().includes(chatSearch.toLowerCase())
+  const filteredConnections = (connections || []).filter((c) =>
+    `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase().includes(chatSearch.toLowerCase())
   );
 
   return (
@@ -159,7 +166,7 @@ const Messages = () => {
               <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-rose-400" /> Chats
+                    <MessageSquare className="w-4 h-4 text-rose-400" /> Matches Chat
                   </h2>
                   <p className="text-[11px] text-slate-400">
                     {connections?.length || 0} active matched developer{connections?.length === 1 ? "" : "s"}
@@ -189,6 +196,13 @@ const Messages = () => {
                 {filteredConnections && filteredConnections.length > 0 ? (
                   filteredConnections.map((contact) => {
                     const isSelected = activeContact?._id === contact._id;
+                    const effectivePhoto =
+                      contact.photourl && !contact.photourl.includes("brave.com")
+                        ? contact.photourl
+                        : contact.gender === "female"
+                        ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
+                        : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100";
+
                     return (
                       <button
                         key={contact._id}
@@ -201,12 +215,15 @@ const Messages = () => {
                       >
                         <div className="relative flex-shrink-0">
                           <img
-                            src={
-                              contact.photourl ||
-                              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
-                            }
+                            src={effectivePhoto}
                             alt={contact.firstName}
                             className="w-11 h-11 rounded-xl object-cover ring-1 ring-white/10"
+                            onError={(e) => {
+                              e.target.src =
+                                contact.gender === "female"
+                                  ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
+                                  : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100";
+                            }}
                           />
                           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#090d18]"></span>
                         </div>
@@ -217,11 +234,11 @@ const Messages = () => {
                               {contact.firstName} {contact.lastName || ""}
                             </h4>
                             <span className="text-[10px] text-slate-400 font-mono">
-                              10:36 AM
+                              Online
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                            {contact.about ? contact.about.replace(/[☕🔥🚀✨🎉💬🤝]/g, "").trim() : "Let's build something together!"}
+                            {contact.skills?.slice(0, 2).join(", ") || "Fullstack Developer"}
                           </p>
                         </div>
                       </button>
@@ -230,12 +247,15 @@ const Messages = () => {
                 ) : (
                   <div className="p-6 text-center text-slate-400 space-y-3">
                     <Users className="w-8 h-8 text-slate-500 mx-auto opacity-50" />
-                    <p className="text-xs">No active matches found.</p>
+                    <p className="text-xs font-semibold text-slate-300">No mutual connections yet.</p>
+                    <p className="text-[11px] text-slate-400">
+                      Swipe developers in the discover feed to match and unlock messaging!
+                    </p>
                     <Link
                       to="/"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-rose-300"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-rose-300 mt-2"
                     >
-                      <span>Swipe candidates in feed</span>
+                      <span>Discover Developers</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
@@ -252,8 +272,11 @@ const Messages = () => {
                     <div className="relative">
                       <img
                         src={
-                          activeContact.photourl ||
-                          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
+                          activeContact.photourl && !activeContact.photourl.includes("brave.com")
+                            ? activeContact.photourl
+                            : activeContact.gender === "female"
+                            ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
+                            : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
                         }
                         alt={activeContact.firstName}
                         className="w-10 h-10 rounded-xl object-cover ring-1 ring-white/10"
@@ -265,7 +288,7 @@ const Messages = () => {
                       <h3 className="text-sm font-bold text-white flex items-center gap-2">
                         {activeContact.firstName} {activeContact.lastName || ""}
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                          Online
+                          Active Now
                         </span>
                       </h3>
                       <p className="text-[11px] text-slate-400 truncate max-w-xs">
@@ -288,9 +311,9 @@ const Messages = () => {
                       <Video className="w-4 h-4" />
                     </button>
                     <Link
-                      to={`/profile`}
+                      to="/connections"
                       className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white transition-all cursor-pointer"
-                      title="Profile Info"
+                      title="View all connections"
                     >
                       <Info className="w-4 h-4" />
                     </Link>
@@ -303,11 +326,11 @@ const Messages = () => {
                   <div className="text-center my-2">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.06] text-[10px] font-mono text-slate-400">
                       <Sparkles className="w-3 h-3 text-rose-400" />
-                      <span>Matched on DevTinder</span>
+                      <span>Connected on DevTinder</span>
                     </span>
                   </div>
 
-                  {messages.map((msg) => {
+                  {currentMessages.map((msg) => {
                     const isMe = msg.sender === "me";
                     return (
                       <div
@@ -333,7 +356,7 @@ const Messages = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Quick Snippet Chips without raw emojis */}
+                {/* Quick Snippet Chips */}
                 <div className="px-4 py-2 bg-[#090d18]/60 border-t border-white/[0.04] flex items-center gap-2 overflow-x-auto text-[11px]">
                   <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider flex-shrink-0">
                     Quick:

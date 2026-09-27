@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import { removeUser } from "../../utils/userSlice";
 import { addRequests } from "../../utils/requestSlice";
-import { Search, Bell, ChevronDown, User, Settings, LogOut, Heart, MessageSquare } from "lucide-react";
+import { Search, Bell, ChevronDown, User, Settings, LogOut, Heart, MessageSquare, Sparkles } from "lucide-react";
 import DevTinderLogo from "../common/DevTinderLogo";
 
 const TopHeader = ({ searchQuery, setSearchQuery }) => {
@@ -40,18 +40,19 @@ const TopHeader = ({ searchQuery, setSearchQuery }) => {
   const handleLogout = async () => {
     try {
       await api.post("/logout", {});
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
       localStorage.removeItem("token");
       dispatch(removeUser());
       navigate("/login");
-    } catch (err) {
-      console.error("Logout error:", err);
     }
   };
 
   const pendingCount = requests ? requests.length : 0;
 
   return (
-    <header className="w-full h-[72px] flex-shrink-0 bg-[#090d16]/95 backdrop-blur-2xl border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between z-50 shadow-2xl">
+    <header className="w-full h-[72px] flex-shrink-0 bg-[#090d16]/95 backdrop-blur-2xl border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between z-50 shadow-2xl relative">
       {/* Left: Brand Logo */}
       <div className="flex items-center gap-3">
         <Link to="/" className="flex items-center group cursor-pointer">
@@ -92,10 +93,11 @@ const TopHeader = ({ searchQuery, setSearchQuery }) => {
           )}
         </Link>
 
-        {/* User Profile Pill & Dropdown (100% Tailwind CSS) */}
-        {user ? (
+        {/* User Profile Pill & Dropdown */}
+        {user && (
           <div className="relative" ref={dropdownRef}>
             <button
+              type="button"
               onClick={() => setDropdownOpen((prev) => !prev)}
               className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-[#111625] border border-white/[0.08] hover:border-white/[0.18] cursor-pointer transition-all focus:outline-none"
             >
@@ -117,11 +119,15 @@ const TopHeader = ({ searchQuery, setSearchQuery }) => {
                     : "Full Stack Developer"}
                 </span>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-1 hidden lg:block transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-400 ml-1 hidden lg:block transition-transform duration-200 ${
+                  dropdownOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 z-50 p-2 shadow-2xl bg-[#0f1422] border border-white/10 rounded-2xl w-60 space-y-1 text-slate-200 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute right-0 top-full mt-2 z-50 p-2 shadow-2xl bg-[#0f1422] border border-white/10 rounded-2xl w-64 space-y-1 text-slate-200">
                 <div className="px-3 py-2 border-b border-white/5">
                   <div className="font-bold text-sm text-white">
                     {user.firstName} {user.lastName || ""}
@@ -132,56 +138,42 @@ const TopHeader = ({ searchQuery, setSearchQuery }) => {
                 <Link
                   to="/profile"
                   onClick={() => setDropdownOpen(false)}
-                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white"
+                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white cursor-pointer"
                 >
-                  <User className="w-4 h-4 text-purple-400" /> Edit Profile
-                </Link>
-
-                <Link
-                  to="/connections"
-                  onClick={() => setDropdownOpen(false)}
-                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white"
-                >
-                  <Heart className="w-4 h-4 text-rose-400" /> Matches
-                </Link>
-
-                <Link
-                  to="/messages"
-                  onClick={() => setDropdownOpen(false)}
-                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white"
-                >
-                  <MessageSquare className="w-4 h-4 text-sky-400" /> Messages
+                  <User className="w-4 h-4 text-purple-400" /> Edit Profile & Stack
                 </Link>
 
                 <Link
                   to="/settings"
                   onClick={() => setDropdownOpen(false)}
-                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white"
+                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white cursor-pointer"
                 >
-                  <Settings className="w-4 h-4 text-amber-400" /> Settings
+                  <Settings className="w-4 h-4 text-amber-400" /> Account & Security
+                </Link>
+
+                <Link
+                  to="/premium"
+                  onClick={() => setDropdownOpen(false)}
+                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-medium hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-rose-400" /> Premium Membership
                 </Link>
 
                 <div className="h-px bg-white/5 my-1"></div>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setDropdownOpen(false);
                     handleLogout();
                   }}
-                  className="w-full px-3 py-2.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer text-left"
+                  className="w-full px-3 py-2.5 flex items-center gap-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors text-left cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" /> Logout
                 </button>
               </div>
             )}
           </div>
-        ) : (
-          <Link
-            to="/login"
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 text-white font-bold text-xs shadow-md shadow-rose-500/30 hover:scale-105 active:scale-95 transition-all"
-          >
-            Sign in
-          </Link>
         )}
       </div>
     </header>

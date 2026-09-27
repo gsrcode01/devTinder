@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import api from "../utils/api";
-import { addFeed, removeUserFromFeed } from "../utils/feedSlice";
+import { addFeed, appendFeed, removeUserFromFeed } from "../utils/feedSlice";
 import TopHeader from "../components/Dashboard/TopHeader";
 import Sidebar from "../components/Dashboard/Sidebar";
 import FiltersPanel from "../components/Dashboard/FiltersPanel";
@@ -9,86 +9,52 @@ import SwipeDeck from "../components/Dashboard/SwipeDeck";
 import ActivityPanel from "../components/Dashboard/ActivityPanel";
 import { Sparkles, Users, MessageSquare, CheckCircle2 } from "lucide-react";
 
-// Default rich developer candidates if database is fresh
-const defaultCandidates = [
-  {
-    _id: "candidate-1",
-    firstName: "Priya",
-    lastName: "Sharma",
-    age: 24,
-    gender: "female",
-    role: "Frontend Developer at Swiggy",
-    photourl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700",
-    about: "Building delightful user experiences with React & Next.js. Always up for a good tech conversation ☕",
-    skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Redux"],
-  },
-  {
-    _id: "candidate-2",
-    firstName: "Sarah",
-    lastName: "Chen",
-    age: 26,
-    gender: "female",
-    role: "Fullstack Architect at Stripe",
-    photourl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=700",
-    about: "Distributed systems, GraphQL, Node.js and TypeScript. Looking for hackathon partners!",
-    skills: ["React", "Node.js", "TypeScript", "GraphQL", "Docker"],
-  },
-  {
-    _id: "candidate-3",
-    firstName: "Alex",
-    lastName: "Rivera",
-    age: 27,
-    gender: "male",
-    role: "AI & ML Engineer at OpenAI",
-    photourl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700",
-    about: "Working on LLMs, agentic workflows, PyTorch and CUDA kernels.",
-    skills: ["Python", "PyTorch", "FastAPI", "Docker", "AWS"],
-  },
-  {
-    _id: "candidate-4",
-    firstName: "David",
-    lastName: "Kim",
-    age: 28,
-    gender: "male",
-    role: "Go & Rust Developer",
-    photourl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700",
-    about: "Low-latency systems, database internals, and high-throughput servers.",
-    skills: ["Rust", "Go", "Docker", "Kubernetes", "PostgreSQL"],
-  },
-];
-
 const Feed = () => {
   const feed = useSelector((store) => store.feed);
   const user = useSelector((store) => store.user);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState("");
 
-  const getFeed = async () => {
+  const getFeed = async (pageNum = 1, isInitial = false) => {
     try {
       setLoading(true);
-      const res = await api.get("/feed");
-      const dbUsers = res.data?.data;
-      if (dbUsers && dbUsers.length > 0) {
+      const res = await api.get(`/feed?page=${pageNum}&limit=30`);
+      const dbUsers = res.data?.data || [];
+
+      if (pageNum === 1) {
         dispatch(addFeed(dbUsers));
+        setPage(1);
+        setHasMore(dbUsers.length > 0);
       } else {
-        // Use rich default candidates if database feed is exhausted
-        dispatch(addFeed(defaultCandidates));
+        if (dbUsers.length > 0) {
+          dispatch(appendFeed(dbUsers));
+          setPage(pageNum);
+        } else {
+          setHasMore(false);
+        }
       }
     } catch (err) {
-      console.error("Error fetching feed, fallback to demo profiles:", err);
-      dispatch(addFeed(defaultCandidates));
+      console.error("Error fetching feed from database:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadMoreFeed = useCallback(() => {
+    if (!loading && hasMore) {
+      getFeed(page + 1);
+    }
+  }, [loading, hasMore, page]);
+
   const handleAction = async (status, toUserId) => {
     try {
       await api.post(`/request/send/${status}/${toUserId}`, {});
     } catch (err) {
-      // ignore or log
+      console.error("Error sending connection request:", err);
     }
     dispatch(removeUserFromFeed(toUserId));
     setToastMessage(
@@ -100,13 +66,53 @@ const Feed = () => {
   };
 
   useEffect(() => {
-    // Only call feed API if user is authenticated and feed is not already cached in Redux store
     if (user && (!feed || feed.length === 0)) {
-      getFeed();
+      getFeed(1, true);
     }
-  }, [user, feed]);
+  }, [user]);
 
-  const activeProfiles = feed && feed.length > 0 ? feed : defaultCandidates;
+  const [filters, setFilters] = useState({
+    lookingFor: "Collaboration",
+    role: "All Roles",
+    skills: [],
+    location: "Any Location",
+    distance: 100,
+    onlineNow: false,
+    hasPhoto: true,
+    openToOpps: false,
+  });
+
+  // Filter feed by search query, skills, role, and location in real-time
+  const activeProfiles = (feed || []).filter((profile) => {
+    // 1. Search Bar Query (Skills, Names, Roles)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase().trim();
+      const fullName = `${profile.firstName} ${profile.lastName || ""}`.toLowerCase();
+      const skillsMatch = (profile.skills || []).some((s) => s.toLowerCase().includes(query));
+      const roleMatch = (profile.about || "").toLowerCase().includes(query);
+      if (!fullName.includes(query) && !skillsMatch && !roleMatch) return false;
+    }
+
+    // 2. Role Filter
+    if (filters.role && filters.role !== "All Roles") {
+      const roleTerm = filters.role.toLowerCase();
+      const aboutMatch = (profile.about || "").toLowerCase().includes(roleTerm);
+      const skillsMatch = (profile.skills || []).some((s) => s.toLowerCase().includes(roleTerm));
+      if (!aboutMatch && !skillsMatch) return false;
+    }
+
+    // 3. Skills Filter (if any skills are selected in filter chips)
+    if (filters.skills && filters.skills.length > 0) {
+      const hasSelectedSkill = filters.skills.some((selectedSkill) =>
+        (profile.skills || []).some((userSkill) =>
+          userSkill.toLowerCase().includes(selectedSkill.toLowerCase())
+        )
+      );
+      if (!hasSelectedSkill) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#070913] text-slate-100 selection:bg-rose-500 selection:text-white">
@@ -170,10 +176,10 @@ const Feed = () => {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span className="text-rose-400">10,000+ developers</span> already connected
+                    <span className="text-rose-400">10,500+ active developers</span> ready to collaborate
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Join a growing community of builders worldwide.
+                    Live MongoDB feed loaded with diverse engineering talent.
                   </p>
                 </div>
               </div>
@@ -196,19 +202,25 @@ const Feed = () => {
           {/* Main Discover Area: Filters (Left) + 3D Swipe Deck (Right) */}
           <div className="flex flex-col lg:flex-row gap-6 items-start">
             {/* Filters Panel */}
-            <FiltersPanel onReset={getFeed} />
+            <FiltersPanel
+              filters={filters}
+              setFilters={setFilters}
+              onReset={() => getFeed(1)}
+            />
 
-            {/* 3D Stack Swipe Deck */}
+            {/* 3D Stack Swipe Deck with Continuous Infinite Pagination & Detail Modal */}
             <SwipeDeck
               profiles={activeProfiles}
               onAction={handleAction}
-              onUndo={() => getFeed()}
+              onLoadMore={loadMoreFeed}
+              onRefresh={() => getFeed(1)}
+              loading={loading}
             />
           </div>
         </main>
 
-        {/* 3. Right Sidebar Activity & Top Matches Column - Scrolls internally */}
-        <div className="hidden xl:block w-80 flex-shrink-0 p-6 pl-0 border-l border-white/[0.06] bg-[#090d16] h-full overflow-y-auto">
+        {/* 3. Right Sidebar Activity & Top Matches Column - Scrolls internally with proper margins */}
+        <div className="hidden xl:block w-84 flex-shrink-0 p-4 lg:p-5 border-l border-white/[0.08] bg-[#090d16] h-full overflow-y-auto">
           <ActivityPanel />
         </div>
       </div>

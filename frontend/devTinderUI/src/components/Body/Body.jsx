@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import api from "../../utils/api";
 import { addUser } from "../../utils/userSlice";
@@ -12,7 +12,7 @@ const Body = () => {
   const [isAuthChecking, setIsAuthChecking] = useState(!userData);
 
   const fetchUser = async () => {
-    // Redux optimization: If user is ALREADY present in Redux store, do NOT make the API call again!
+    // If user is ALREADY in Redux store, do NOT make the API call again!
     if (userData) {
       setIsAuthChecking(false);
       return;
@@ -22,11 +22,15 @@ const Body = () => {
       const res = await api.get("/profile/view");
       if (res.data?.data) {
         dispatch(addUser(res.data.data));
+      } else {
+        if (location.pathname !== "/login") {
+          navigate("/login", { replace: true });
+        }
       }
     } catch (err) {
-      // If user is not logged in and attempts to access protected routes, redirect to /login
+      // If user is not authenticated and attempts to access protected routes, redirect to /login
       if (location.pathname !== "/login") {
-        navigate("/login");
+        navigate("/login", { replace: true });
       }
     } finally {
       setIsAuthChecking(false);
@@ -34,14 +38,13 @@ const Body = () => {
   };
 
   useEffect(() => {
-    // If not in Redux store, fetch once
     if (!userData) {
       fetchUser();
     } else {
       setIsAuthChecking(false);
-      // If already logged in and user hits /login, keep them logged in and send to feed /
+      // If already logged in and user accesses /login, redirect directly to /
       if (location.pathname === "/login") {
-        navigate("/");
+        navigate("/", { replace: true });
       }
     }
   }, [userData, location.pathname]);
@@ -52,10 +55,15 @@ const Body = () => {
       <div className="flex items-center justify-center min-h-screen bg-[#070913] text-slate-100">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-pink-500/30 border-t-pink-500 rounded-full animate-spin"></div>
-          <span className="text-xs font-mono text-slate-400">Restoring session...</span>
+          <span className="text-xs font-mono text-slate-400">Verifying authentication...</span>
         </div>
       </div>
     );
+  }
+
+  // Strict route guard: If auth verification is done and user is not logged in, block all routes and redirect to /login
+  if (!isAuthChecking && !userData && location.pathname !== "/login") {
+    return <Navigate to="/login" replace />;
   }
 
   return (

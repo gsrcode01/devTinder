@@ -1,4 +1,4 @@
-import { Heart, X, CheckCircle2, MapPin, Briefcase, Flame } from "lucide-react";
+import { Heart, X, CheckCircle2, MapPin, Briefcase, Flame, Sparkles } from "lucide-react";
 
 const UserCard = ({ user, handleSendRequest }) => {
   if (!user) return null;

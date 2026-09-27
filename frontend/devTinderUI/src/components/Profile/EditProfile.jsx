@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import api from "../../utils/api";
@@ -28,17 +28,29 @@ const photoPresets = [
 const EditProfile = ({ user }) => {
   const dispatch = useDispatch();
 
-  const [firstName, setFirstName] = useState(user.firstName || "");
-  const [lastName, setLastName] = useState(user.lastName || "");
-  const [photourl, setPhotourl] = useState(user.photourl || "");
-  const [age, setAge] = useState(user.age || "");
-  const [gender, setGender] = useState(user.gender || "female");
-  const [about, setAbout] = useState(user.about || "");
-  const [skills, setSkills] = useState(user.skills ? user.skills.join(", ") : "");
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [photourl, setPhotourl] = useState(user?.photourl || "");
+  const [age, setAge] = useState(user?.age || "");
+  const [gender, setGender] = useState(user?.gender || "female");
+  const [about, setAbout] = useState(user?.about || "");
+  const [skills, setSkills] = useState(user?.skills ? user.skills.join(", ") : "");
 
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+      setPhotourl(user.photourl || "");
+      setAge(user.age || "");
+      setGender(user.gender || "female");
+      setAbout(user.about || "");
+      setSkills(user.skills ? user.skills.join(", ") : "");
+    }
+  }, [user]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
