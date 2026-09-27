@@ -24,7 +24,7 @@
 ## 🌟 Highlights & Features
 
 - 🃏 **3D Interactive Swipe Deck**: Swipe right to connect (`interested`) or swipe left to pass (`ignored`) with smooth CSS 3D stack transforms and keyboard shortcuts (`←` and `→`).
-- 👥 **10,500+ Active Developer Database**: Pre-seeded with a massive, diverse talent pool of verified developers across global and Indian tech hubs.
+- ⚡ **Scalable Matchmaking Feed**: Paginated high-throughput candidate streaming with real-time exclude filters for past interactions.
 - 🔍 **Click-to-Inspect Developer Modal**: Click any candidate card (or press `↑` / `Enter`) to open an in-depth profile modal featuring verified badges, full bio, portfolio links, and complete tech stack breakdown.
 - 🎯 **Multi-Criteria Skill & Role Filtering**: Filter developers dynamically by specialized roles (*Frontend*, *Backend*, *Fullstack*, *DevOps*, *Mobile*, *AI/ML*) or specific tech skills (*React*, *Go*, *Rust*, *Python*, *Kubernetes*, etc.).
 - 💬 **Real-Time Matches & Chat**: Dedicated conversation threads for all mutual connections with instant typing simulation, quick code snippet inserters, and message search.
@@ -44,7 +44,6 @@ devTinder/
 │   │   ├── middlewares/     # JWT & Cookie Auth verification
 │   │   ├── models/          # User & ConnectionRequest Mongoose schemas
 │   │   ├── routes/          # Auth, Profile, User Feed, Connection APIs
-│   │   ├── scripts/         # High-speed 10,500+ user batch seeder
 │   │   ├── utils/           # Validation & data sanitizer helpers
 │   │   └── app.js           # Server entry point & CORS configuration
 │   └── package.json
@@ -104,13 +103,7 @@ npm run dev
 # Server will run on http://localhost:3000
 ```
 
-### 4. Seed 10,500+ Developers (Optional)
-```bash
-# Inside the Backend directory:
-node src/scripts/seedTenThousandUsers.js
-```
-
-### 5. Frontend Setup
+### 4. Frontend Setup
 ```bash
 cd ../frontend/devTinderUI
 npm install
@@ -129,14 +122,6 @@ npm run dev
 
 ---
 
-## 👤 Test Credentials
-
-You can use any of the seeded developers or create a fresh account:
-- **Email**: `priya.sharma@example.com`
-- **Password**: `DevPassword@123`
-
----
-
 ## 📄 License
-This project is licensed under the [ISC License](LICENSE).
+This project is licensed under the [ISC License](LICENSE).  
 Built with ❤️ for developers worldwide to connect, build, and ship great software.
