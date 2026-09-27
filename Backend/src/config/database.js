@@ -6,7 +6,12 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
     await mongoose.connect(
-        "mongodb+srv://dummymail0159_db_user:jFsG4QwLEaLigreb@cluster0.vjkhroq.mongodb.net/devTinder?retryWrites=true&w=majority"
+        "mongodb+srv://dummymail0159_db_user:jFsG4QwLEaLigreb@cluster0.vjkhroq.mongodb.net/devTinder?retryWrites=true&w=majority",
+        {
+            tls: true,
+            tlsAllowInvalidCertificates: false,
+            serverSelectionTimeoutMS: 5000,
+        }
     );
 };
 

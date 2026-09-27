@@ -4,11 +4,17 @@ const User = require("../models/user");
 
 
 const userAuth = async (req, res, next) => {
-    //read the token from the user the req cookies
     try {
-        const { token } = req.cookies;
+        let token = req.cookies?.token;
+        if (!token && req.headers?.authorization) {
+            token = req.headers.authorization.replace("Bearer ", "");
+        }
+        if (!token && req.headers?.token) {
+            token = req.headers.token;
+        }
+
         if (!token) {
-            throw new Error("Token is not valid!!");
+            return res.status(401).send("Error: Token is not valid or missing!");
         }
 
         const decodeObj = await jwt.verify(token, "devTinder@159");
@@ -16,18 +22,13 @@ const userAuth = async (req, res, next) => {
         const { _id } = decodeObj;
         const user = await User.findById(_id);
         if (!user) {
-            throw new Error("User not found");
+            return res.status(404).send("Error: User not found");
         }
         req.user = user;
         next();
     } catch (err) {
-        res.status(400).send("Error:" + err.message);
+        res.status(401).send("Error: " + err.message);
     }
-
-    //validate the token
-
-    //find the user
-
 };
 
 module.exports = { userAuth, };

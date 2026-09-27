@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@keyframes marqueeUp {
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes marqueeDown {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
+}
+
+.animate-marquee-up {
+  animation: marqueeUp 45s linear infinite;
+}
+
+.animate-marquee-down {
+  animation: marqueeDown 45s linear infinite;
+}
+
+.animate-marquee-up-slow {
+  animation: marqueeUp 55s linear infinite;
+}
+
+.animate-marquee-down-slow {
+  animation: marqueeDown 55s linear infinite;
+}
+
+@keyframes spinLaser {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-laser {
+  animation: spinLaser 4.5s linear infinite;
+}
+
+/* Custom premium styling for inputs */
+.dev-input {
+  background-color: #11151f;
+  border: 1px solid #303746;
+  color: #f1f5f9;
+  transition: all 0.2s ease-in-out;
+}
+
+.dev-input:focus {
+  border-color: #a855f7;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide all visible browser scrollbars while keeping smooth scrolling */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
+}
+
+/* Handwriting script font */
+.font-handwriting {
+  font-family: 'Caveat', cursive, sans-serif;
+}
